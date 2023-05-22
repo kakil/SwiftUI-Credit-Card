@@ -8,34 +8,67 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var cardOffset: CGSize = .zero
+
     var body: some View {
         ZStack {
             Color.black.edgesIgnoringSafeArea(.all)
 
-            VStack(alignment: .leading) {
-                Text("Debit Card")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                Text("**** 0941")
-                    .font(.body)
+            CardView()
+                .frame(width: 360, height: 240)
+                .offset(cardOffset)
+                .rotation3DEffect(
+                    Angle(degrees: cardOffset != .zero ? 15 : 0),
+                    axis: (x: -cardOffset.height, y: cardOffset.width, z: 0.0)
+                )
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            cardOffset = value.translation
+                        }
+                        .onEnded { _ in
+                            withAnimation(.spring()) {
+                                cardOffset = .zero
+                            }
+                        }
+                )
+
+            ParticleEmitterView()
+                .frame(width: 360, height: 240)
+                .offset(cardOffset)
+                .rotation3DEffect(
+                    Angle(degrees: cardOffset != .zero ? 15 : 0),
+                    axis: (x: -cardOffset.height, y: cardOffset.width, z: 0.0)
+                )
+                .allowsHitTesting(false) // Add this line
+        }
+    }
+}
+
+struct CardView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text("Debit Card")
+                .font(.headline)
+                .foregroundColor(.white)
+            Text("**** 3557")
+                .font(.body)
+                .foregroundColor(.white)
+            Spacer()
+            HStack {
+                Text("Valid Thru 11/25")
+                    .font(.caption)
                     .foregroundColor(.white)
                 Spacer()
-                HStack {
-                    Text("Valid Thru 06/05")
-                        .font(.caption)
-                        .foregroundColor(.white)
-                    Spacer()
-                    Image(systemName: "applelogo")
-                        .font(.system(size: 40))
-                        .foregroundColor(.white)
-                }
+                Image(systemName: "applelogo")
+                    .font(.system(size: 40))
+                    .foregroundColor(.white)
             }
-            .padding(30)
-            .frame(width: 360, height: 240)
-            .background(gradientBackground)
-            .cornerRadius(30)
-            .overlay(RoundedRectangle(cornerRadius: 30).strokeBorder(gradientOutline, lineWidth: 2))
         }
+        .padding(30)
+        .background(gradientBackground)
+        .cornerRadius(30)
+        .overlay(RoundedRectangle(cornerRadius: 30).strokeBorder(gradientOutline, lineWidth: 2))
     }
 
     var gradientBackground: some View {
@@ -48,6 +81,65 @@ struct ContentView: View {
             Gradient.Stop(color: Color.clear, location: 0.5),
             Gradient.Stop(color: Color.white.opacity(0.5), location: 1)
         ]), startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+struct ParticleEmitterView: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        let emitterLayer = createEmitterLayer()
+        view.layer.addSublayer(emitterLayer)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+    }
+
+    private func createEmitterLayer() -> CAEmitterLayer {
+        let emitterLayer = CAEmitterLayer()
+        emitterLayer.emitterShape = .rectangle
+        emitterLayer.emitterSize = CGSize(width: 360, height: 240)
+        emitterLayer.emitterPosition = CGPoint(x: 180, y: 120)
+        emitterLayer.renderMode = .oldestFirst // Update this line
+        emitterLayer.emitterCells = createEmitterCells()
+        return emitterLayer
+    }
+
+    private func createEmitterCells() -> [CAEmitterCell] {
+        let numberOfEmitters = 40
+        return (0..<numberOfEmitters).map { index in
+            let emitterCell = createEmitterCell()
+            let emissionLongitude = Double(index) * (2 * Double.pi) / Double(numberOfEmitters)
+            emitterCell.emissionLongitude = CGFloat(emissionLongitude)
+            emitterCell.birthRate = 5 // Update this line
+            emitterCell.velocity = 50 // Update this line
+            emitterCell.lifetime = 1.5 // Update this line
+            return emitterCell
+        }
+    }
+
+    private func createEmitterCell() -> CAEmitterCell {
+        let emitterCell = CAEmitterCell()
+
+        // Custom white circle image
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20))
+        let whiteCircle = renderer.image { context in
+            UIColor.white.setFill()
+            context.cgContext.fillEllipse(in: CGRect(x: 0, y: 0, width: 20, height: 20))
+        }
+        emitterCell.contents = whiteCircle.cgImage
+
+        emitterCell.birthRate = 1
+        emitterCell.lifetime = 1.0
+        emitterCell.scale = 0.1
+        emitterCell.scaleRange = 0.02
+        emitterCell.scaleSpeed = -0.05
+        emitterCell.velocity = 40
+        emitterCell.velocityRange = 10
+        emitterCell.yAcceleration = 0
+        emitterCell.alphaRange = 0.5
+        emitterCell.alphaSpeed = -0.5
+        return emitterCell
     }
 }
 
